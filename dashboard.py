@@ -5,7 +5,7 @@ import pandas as pd
 import altair as alt
 import matplotlib.pyplot as plt
 
-np.random.seed(1111)
+np.random.seed(9999)
 
 def get_line_chart(data, x_axis, y_axis ,title=None):
     hover = alt.selection_single(
@@ -65,13 +65,14 @@ inventory_records = {'siteA': generate_random_ratio(4),
                    'siteC': generate_random_ratio(4),
                    }
 
+
+
 st.set_page_config(layout="wide", page_title="dashboard app")
 st.title('倉儲 Dashboard')
 
 # selet sites
 all_sites = ['siteA', 'siteB', 'siteC']
 sites = st.multiselect("Choose sites to visualize", all_sites, all_sites[:2])
-
 
 
 col11, col12 = st.columns(2)
