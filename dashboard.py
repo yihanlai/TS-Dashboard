@@ -61,9 +61,9 @@ storage_records = {'siteA': generate_random_ratio(3),
                    'siteC': generate_random_ratio(3),
                    }
 inventory_records = {'siteA': generate_random_ratio(4),
-                   'siteB': generate_random_ratio(4),
-                   'siteC': generate_random_ratio(4),
-                   }
+                     'siteB': generate_random_ratio(4),
+                     'siteC': generate_random_ratio(4),
+                    }
 
 
 
