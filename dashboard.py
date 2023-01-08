@@ -8,7 +8,7 @@ import altair as alt
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# np.random.seed(9999)
+np.random.seed(9999)
 
 def get_line_chart(data, x_axis, y_axis ,title=None):
     hover = alt.selection_single(
@@ -53,16 +53,49 @@ def get_pie_chart(sizes, labels, colors):
                 startangle=90)
     return fig
 
-def generate_random_ratio(num):
-    list1 = np.random.randint(10, 100, size=num)
-    ratio = 100/ sum(list1)
-    return list1 / ratio
+
+@st.cache()
+def generate_random_realtime_data(site, date):
+    real_time_temp = random.randint(15,25)
+    delta_temp = random.randint(-5,5)
+    real_time_humid = random.randint(15,25)
+    delta_humid = random.randint(-5,5)
+    real_time_inventory_day = random.randint(5,15)
+    delta_inventory_day = random.randint(-5,5)
+    real_time_correct_rate = random.randint(95,100)
+    delta_correct_rate = random.randint(-3,5)
+
+    real_time_data = [real_time_temp, delta_temp, real_time_humid, delta_humid,
+                      real_time_inventory_day, delta_inventory_day, real_time_correct_rate, delta_correct_rate]
+
+    fake_storage = [random.randint(50,200) for x in range(0,4)]
+    fake_inventory = [random.randint(100,500) for x in range(0,5)]
 
 
-############# generate fake data #############
-fake_storage = np.random.randint(50,200,3)
-fake_inventory = np.random.randint(100,500,4)
+    return real_time_data, fake_storage, fake_inventory
 
+
+## dashboard strat
+st.set_page_config(layout="wide", page_title="dashboard app")
+st.title('倉儲 Dashboard')
+
+## selet site
+col001, col002 =  st.columns(2)
+all_sites = np.array(['台北倉', '桃園倉', '高雄倉'])
+col001.write("#### :house: Please select a warehouse")
+col001.write("##### 請選擇欲查詢倉庫")
+site = col001.selectbox(" ", all_sites, index = 0)
+
+## selee date
+col002.write("#### :calendar: Please select a date")
+col002.write("##### 請選擇欲查詢日期")
+date = col002.date_input(" ", datetime.now())
+
+st.write("")
+
+real_time_data, fake_storage, fake_inventory = generate_random_realtime_data(site, date)
+
+######################################## generate fake data ########################################
 storage_records = {
     "title": {"text": "倉庫使用率", "subtext":"Storage Utilization", "left": "center"},
     "tooltip": {"trigger": "item"},
@@ -110,58 +143,29 @@ inventory_records = {
     ],
 }
 
-temp_data = {'site': ['新竹1倉']*31 + ['新竹2倉']*31 + ['苗栗1倉']*31,
+temp_data = {'site': ['台北倉']*31 + ['桃園倉']*31 + ['高雄倉']*31,
              'date': np.tile(pd.date_range('2022-12-01','2022-12-31'), 3), 
              'temperature': np.round(np.random.uniform(15,25,31*3), 1),
              }
 
-humid_data = {'site': ['新竹1倉']*31 + ['新竹2倉']*31 + ['苗栗1倉']*31,
+humid_data = {'site': ['台北倉']*31 + ['桃園倉']*31 + ['高雄倉']*31,
               'date': np.tile(pd.date_range('2022-12-01','2022-12-31'), 3), 
               'humidity': np.round(np.random.uniform(15,40,31*3), 1),
               }
+####################################################################################################
 
-####################################################
-
-
-## dashboard strat
-st.set_page_config(layout="wide", page_title="dashboard app")
-st.title('倉儲 Dashboard')
-
-## selet sites
-col001, col002 =  st.columns(2)
-all_sites = np.array(['新竹1倉', '新竹2倉', '苗栗1倉'])
-col001.write("#### :house: Please select a warehouse")
-col001.write("##### 請選擇欲查詢倉庫")
-site = col001.selectbox(" ", all_sites)
-
-## selee date
-col002.write("#### :calendar: Please select a date")
-col002.write("##### 請選擇欲查詢日期")
-date = col002.date_input(" ", datetime.now())
-
-st.write("")
 
 ## real-time data visulization
-if date:
-    real_time_temp = np.random.randint(15,25)
-    delta_temp = np.random.randint(-5,5)
-    real_time_humid = np.random.randint(15,25)
-    delta_humid = np.random.randint(-5,5)
-    real_time_inventory_day = np.random.randint(5,15)
-    delta_inventory_day = np.random.randint(-5,5)
-    real_time_correct_rate = np.random.randint(95,100)
-    delta_correct_rate = np.random.randint(-3,5)
-
 st.write(f"#### :bar_chart: Real-time Information of {site}")
 st.write(f"##### {site} 即時資料")
 
 col01, col02, col03, col04 = st.columns(4)
 ### IoT部分
-col01.metric("溫度", f"{real_time_temp} °C", f"{delta_temp} °C")
-col02.metric("濕度", f"{real_time_humid} %", f"{delta_humid} %")
+col01.metric("溫度", f"{real_time_data[0]} °C", f"{real_time_data[1]} °C")
+col02.metric("濕度", f"{real_time_data[2]} %", f"{real_time_data[3]} %")
 ### 庫存KPI部分
-col03.metric("庫存週轉天數", f"{real_time_inventory_day} days", f"{delta_inventory_day}")
-col04.metric("進/出貨準確率", f"{real_time_correct_rate} %", f"{delta_correct_rate} %")
+col03.metric("庫存週轉天數", f"{real_time_data[4]} days", f"{real_time_data[5]}")
+col04.metric("進/出貨準確率", f"{real_time_data[6]} %", f"{real_time_data[7]} %")
 
 st.write("")
 
@@ -193,7 +197,10 @@ col12.altair_chart(chart, use_container_width=True)
 
 st.write("")
 
+
+
 ## lot selection and search
+
 st.write(f"#### :bar_chart:  Lot Information of {site}")
 st.write(f"##### 請選擇欲查詢儲格")
 st.write("")
@@ -218,7 +225,6 @@ def search_lot_detail():
     
 
 def disable_other_parent(state_name_i):
-
     for state_name in parent_state_names:
         the_disabled = "disabled_" + state_name
         the_type = "type_" + state_name
@@ -240,7 +246,6 @@ def disable_other_parent(state_name_i):
 
 
 def disable_other_child(state_name_i):
-
     st.session_state["type_search"] = "secondary"
 
     for state_name in child_state_names:
@@ -298,6 +303,7 @@ with col17:
 st.write("")
 st.write(f"##### 所選儲格本週庫存變化")
 col20, col21 = st.columns([9,1])
+
 def reload_number_in_lot():
     number_in_lot = []
     for i in range(7):
