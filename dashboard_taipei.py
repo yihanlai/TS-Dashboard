@@ -77,6 +77,7 @@ def generate_random_realtime_data(site, date):
 
 ## dashboard strat
 st.set_page_config(layout="wide", page_title="dashboard app")
+st.markdown(" <style>iframe{ height: 400px !important } ", unsafe_allow_html=True) # Edit by Tim
 st.title('倉儲 Dashboard')
 
 ## selet site
@@ -197,127 +198,141 @@ col12.altair_chart(chart, use_container_width=True)
 
 st.write("")
 
-
-
+# Edit by Tim
 ## lot selection and search
-
-st.write(f"#### :bar_chart:  Lot Information of {site}")
-st.write(f"##### 請選擇欲查詢儲格")
-st.write("")
-
-col13, col14, col15, col16, col17, col18, col19= st.columns([1, 1, 1, 1, 1, 0.5, 5])
-parent_state_names = ["a", "b", "c", "d", "e"]
-child_state_names = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15"]
-
-def search_lot_detail():
-    st.session_state["type_search"] = "primary"
-    search_lot_str = st.session_state.get("parent_selected", "a").upper() + "-" + st.session_state.get("child_selected")
-    mtrlnum = "W" + str(random.randrange(2000000, 3000000))
-    number = random.randrange(1000, 10000)
-    status = random.choice(["S", "F", "V"])
-    col19.write(f"#### {search_lot_str} 儲格資訊：")
-    col19.write("---")
-    col19.write(f"##### 產品編號：{mtrlnum}")
-    col19.write(f"##### 數量：{number}")
-    col19.write(f"##### 入庫日期：2023-01-02")
-    col19.write(f"##### 狀態：{status}")
-    reload_number_in_lot()
+def randomtimes(start, end, frmt="%Y-%m-%d %H:%M:%S"):
+    stime = datetime.strptime(start, frmt)
+    etime = datetime.strptime(end, frmt)
+    random_time = random.random() * (etime - stime) + stime
+    return random_time.strftime(frmt)
     
+@st.cache()
+def create_fake_lot_detail():
+    fake_lot_detail = [[[] for i in range(6)] for i in range(5)] 
 
-def disable_other_parent(state_name_i):
-    for state_name in parent_state_names:
-        the_disabled = "disabled_" + state_name
-        the_type = "type_" + state_name
-        if (state_name == state_name_i):
-            st.session_state[the_disabled] = False 
-            st.session_state[the_type] = "primary"
-            st.session_state["parent_selected"] = state_name
-        else:    
-            st.session_state[the_type] = "secondary"
-        #    st.session_state[the_disabled] = True
+    for i in range(5):
+        for j in range(6):
+            mtrlNum = "W" + str(random.randrange(2000000, 3000000))
+            num = random.randrange(0, 10000)
+            remainNum = 10000 - num
+            fake_lot_detail[i][j].append(chr(i+65))
+            fake_lot_detail[i][j].append("0" + str(j))
+            fake_lot_detail[i][j].append(str(mtrlNum))
+            fake_lot_detail[i][j].append(str(num))
+            fake_lot_detail[i][j].append(str(remainNum))
+            fake_lot_detail[i][j].append(randomtimes("2023-01-02 00:00:00", "2023-01-10 23:59:59"))
+            fake_lot_detail[i][j].append([random.randrange(0, 10000) for i in range(7)])
+            fake_lot_detail[i][j].append([random.randrange(0, 10000) for i in range(12)])
 
-    for state_name in child_state_names:
-        the_disabled = "disabled_" + state_name
-        the_type = "type_" + state_name
-        st.session_state[the_disabled] = False
-        st.session_state[the_type] = "secondary"
-      
-    st.session_state["disabled_search"] = True
+    return fake_lot_detail
 
+def search_lot_detail(option1, option2, fake_lot_detail):
+    with col13:
+        search_lot_str = option1 + "-" + option2
+        i = ord(option1)-65
+        j = int(option2[1])-1
+        
+        #lot detail
+        st.write("---")
+        st.write(f"##### {search_lot_str} 儲格資訊：")
+        st.write(f"###### 產品編號：{fake_lot_detail[i][j][2]}")
+        st.write(f"###### 目前儲存量：{fake_lot_detail[i][j][3]}")
+        st.write(f"###### 剩餘儲存量：{fake_lot_detail[i][j][4]}")
+        st.write(f"###### 入庫時間：{fake_lot_detail[i][j][5]}")
 
-def disable_other_child(state_name_i):
-    st.session_state["type_search"] = "secondary"
+        # lot detail graph
+        st.write("---")
+        st.write(f"##### {search_lot_str} 儲格儲存量變動")
+        tab1, tab2 = st.tabs(["Day", "Month"])
+        
+        with tab1:
+            reload_lot_graph(i, j, fake_lot_detail, "week")
 
-    for state_name in child_state_names:
-        the_disabled = "disabled_" + state_name
-        the_type = "type_" + state_name
-        if (state_name == state_name_i):
-            st.session_state[the_disabled] = False
-            st.session_state[the_type] = "primary"
-            st.session_state["child_selected"] = state_name
-        else:
-            st.session_state[the_type] = "secondary"
-        #    st.session_state[the_disabled] = True
-    
-    st.session_state["disabled_search"] = False
+        with tab2:
+            reload_lot_graph(i, j, fake_lot_detail, "month")
 
-
-with col13:
-    button_a = st.button('A', key='but_a', type=st.session_state.get("type_a", "primary"), on_click=disable_other_parent, args=("a",), disabled=st.session_state.get("disabled_a", False))
-    st.write("---")
-    button_01 = st.button('01', key='but_01', type=st.session_state.get("type_01", "secondary"), on_click=disable_other_child, args=("01",), disabled=st.session_state.get("disabled_01", False))
-    button_02 = st.button('02', key='but_02', type=st.session_state.get("type_02", "secondary"), on_click=disable_other_child, args=("02",), disabled=st.session_state.get("disabled_02", False))
-    button_03 = st.button('03', key='but_03', type=st.session_state.get("type_03", "secondary"), on_click=disable_other_child, args=("03",), disabled=st.session_state.get("disabled_03", False))
-    st.write("---")
-    button_search = st.button('Search', key='but_search_lot_detail', type=st.session_state.get("type_search", "secondary"), on_click=search_lot_detail, disabled=st.session_state.get("disabled_search", True))
-
-with col14:
-    button_b = st.button('B', key='but_b', type=st.session_state.get("type_b", "secondary"), on_click=disable_other_parent, args=("b",), disabled=st.session_state.get("disabled_b", False))
-    st.write("---")
-    button_04 = st.button('04', key='but_04', type=st.session_state.get("type_04", "secondary"), on_click=disable_other_child, args=("04",), disabled=st.session_state.get("disabled_04", False))
-    button_05 = st.button('05', key='but_05', type=st.session_state.get("type_05", "secondary"), on_click=disable_other_child, args=("05",), disabled=st.session_state.get("disabled_05", False))
-    button_06 = st.button('06', key='but_06', type=st.session_state.get("type_06", "secondary"), on_click=disable_other_child, args=("06",), disabled=st.session_state.get("disabled_06", False))
-
-
-with col15:
-    button_c = st.button('C', key='but_c', type=st.session_state.get("type_c", "secondary"), on_click=disable_other_parent, args=("c",), disabled=st.session_state.get("disabled_c", False))
-    st.write("---")
-    button_07 = st.button('07', key='but_07', type=st.session_state.get("type_07", "secondary"), on_click=disable_other_child, args=("07",), disabled=st.session_state.get("disabled_07", False))
-    button_08 = st.button('08', key='but_08', type=st.session_state.get("type_08", "secondary"), on_click=disable_other_child, args=("08",), disabled=st.session_state.get("disabled_08", False))
-    button_09 = st.button('09', key='but_09', type=st.session_state.get("type_09", "secondary"), on_click=disable_other_child, args=("09",), disabled=st.session_state.get("disabled_09", False))
-    
-with col16:
-    button_d = st.button('D', key='but_d', type=st.session_state.get("type_d", "secondary"), on_click=disable_other_parent, args=("d",), disabled=st.session_state.get("disabled_d", False))
-    st.write("---")
-    button_10 = st.button('10', key='but_10', type=st.session_state.get("type_10", "secondary"), on_click=disable_other_child, args=("10",), disabled=st.session_state.get("disabled_10", False))
-    button_11 = st.button('11', key='but_11', type=st.session_state.get("type_11", "secondary"), on_click=disable_other_child, args=("11",), disabled=st.session_state.get("disabled_11", False))
-    button_12 = st.button('12', key='but_12', type=st.session_state.get("type_12", "secondary"), on_click=disable_other_child, args=("12",), disabled=st.session_state.get("disabled_12", False))
-    
-with col17:
-    button_e = st.button('E', key='but_e', type=st.session_state.get("type_e", "secondary"), on_click=disable_other_parent, args=("e",), disabled=st.session_state.get("disabled_e", False))
-    st.write("---")
-    button_13 = st.button('13', key='but_13', type=st.session_state.get("type_13", "secondary"), on_click=disable_other_child, args=("13",), disabled=st.session_state.get("disabled_13", False))
-    button_14 = st.button('14', key='but_14', type=st.session_state.get("type_14", "secondary"), on_click=disable_other_child, args=("14",), disabled=st.session_state.get("disabled_14", False))
-    button_15 = st.button('15', key='but_15', type=st.session_state.get("type_15", "secondary"), on_click=disable_other_child, args=("15",), disabled=st.session_state.get("disabled_15", False))
-
-st.write("")
-st.write(f"##### 所選儲格本週庫存變化")
-col20, col21 = st.columns([9,1])
-
-def reload_number_in_lot():
-    number_in_lot = []
-    for i in range(7):
-        number_in_lot.append(random.randrange(1000, 10000))
-
-    with col20:
+def reload_lot_graph(i, j, fake_lot_detail, frmt):
+    if (frmt == "week"):
         option = {
             "xAxis": {
                 "type": "category",
                 "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
             },
             "yAxis": {"type": "value"},
-            "series": [{"data": number_in_lot, "type": "line"}],
+            "series": [{"data": fake_lot_detail[i][j][6], "type": "line"}],
         }
         st_echarts(
-            options=option, height="400px",
+            options=option, height="400px", width="400px", key = "week_graph"
         )
+    elif (frmt == "month"):
+        option = {
+            "xAxis": {
+                "type": "category",
+                "data": ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"],
+            },
+            "yAxis": {"type": "value"},
+            "series": [{"data": fake_lot_detail[i][j][7], "type": "line"}],
+        }
+        st_echarts(
+            options=option, height="400px", width="400px", key = "month_graph"
+        )
+
+st.write(f"#### :bar_chart:  Lot Information of {site}")
+st.write(f"##### 請選擇欲查詢儲格")
+col13, col14 = st.columns([1,1])
+fake_lot_detail = create_fake_lot_detail() # ["A", "01", "mtrlNum", num, remainNum, "2023-01-02 17:08:02"]
+
+with col13:
+    option1 = st.selectbox(
+        "",
+        ("A", "B", "C", "D", "E"),
+        index=0,
+        label_visibility="collapsed"
+    )
+    option2 = st.selectbox(
+        "",
+        ("01", "02", "03", "04", "05", "06"),
+        index=0,
+        label_visibility="collapsed"
+    )
+    button_search = st.button('Search', type="primary", on_click=search_lot_detail, args=(option1, option2, fake_lot_detail))
+
+with col14:
+    st.write("---")
+    st.write(f"##### {site} 各儲格目前儲存量")
+
+    option1 = ["A", "B", "C", "D", "E"]
+    option2 = ["01", "02", "03", "04", "05", "06"]
+    data = []
+    for i in range(5):
+        for j in range(6):
+            data.append([i, j, fake_lot_detail[i][j][3]])
+
+    data = [[d[1], d[0], d[2] if d[2] != 0 else "-"] for d in data]
+
+    option = {
+        "tooltip": {"position": "top"},
+        "grid": {"height": "50%", "top": "10%"},
+        "xAxis": {"type": "category", "data": option2, "splitArea": {"show": True}},
+        "yAxis": {"type": "category", "data": option1, "splitArea": {"show": True}},
+        "visualMap": {
+            "min": 0,
+            "max": 10000,
+            "calculable": True,
+            "orient": "horizontal",
+            "left": "center",
+            "bottom": "15%",
+        },
+        "series": [
+            {
+                "name": "Punch Card",
+                "type": "heatmap",
+                "data": data,
+                "label": {"show": True},
+                "emphasis": {
+                    "itemStyle": {"shadowBlur": 10, "shadowColor": "rgba(0, 0, 0, 0.5)"}
+                },
+            }
+        ],
+    }
+    st_echarts(option, height="400px")
