@@ -4,7 +4,7 @@ import pydeck as pdk
 import streamlit as st
 
 with st.sidebar.form(key="my_form"):
-    selectbox_state = st.selectbox("請輸入您想查詢的貨物編號", ['111', '222', '333', '444', '555'])
+    selectbox_state = st.selectbox("請輸入您想查詢的貨物編號", ['BNA05201624', 'BNA17160650', 'BNA28408227', 'PNA07065293', 'PNA13696387', 'PNA24590925', 'GRP07979783', 'GRP13478514', 'GRP27732412'])
     pressed = st.form_submit_button("確認")
 st.header("出貨狀況")
 def show_table(number):
